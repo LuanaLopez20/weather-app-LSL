@@ -52,6 +52,7 @@
   "jest": {
     "preset": "jest-expo",
     "transformIgnorePatterns": [],
-    "setupFiles": ["./setupTests.ts"]  },
+    "setupFiles": ["./setupTests.ts"]
+  },
   "private": true
 }

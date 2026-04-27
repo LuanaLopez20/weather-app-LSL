@@ -1,313 +1,179 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import Fontisto from "@expo/vector-icons/Fontisto";
+import Svg, { Circle, Line, Path } from "react-native-svg";
 
 const API_KEY = "6f062217425c4e79878200647262304";
 
 const dias = ["DOMINGO","LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO"];
 const meses = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
 
-function obtenerFecha(indice: number) {
-  const hoy = new Date();
-  if (indice === 0) return new Date(hoy.getTime() - 86400000);
-  if (indice === 1) return hoy;
-  return new Date(hoy.getTime() + 86400000);
+function fecha(i:number){
+  const d = new Date(Date.now()+(i-1)*86400000);
+  return `${dias[d.getDay()]} ${d.getDate()} DE ${meses[d.getMonth()]}`;
 }
 
-function obtenerEtiqueta(indice: number) {
-  if (indice === 0) return "AYER";
-  if (indice === 1) return "HOY";
-  return "MAÑANA";
+function etiqueta(i:number){
+  if(i===0)return"AYER";
+  if(i===1)return"HOY";
+  return"MAÑANA";
 }
 
-function formatearFechaCompleta(indice: number) {
-  const fecha = obtenerFecha(indice);
-  return `${dias[fecha.getDay()]} ${fecha.getDate()} DE ${meses[fecha.getMonth()]}`;
-}
+function Icono({condicion}:{condicion:string}){
+  const c=condicion.toLowerCase();
+  const size=240;
 
-function formatearFechaCorta(indice: number) {
-  const fecha = obtenerFecha(indice);
-  return `${dias[fecha.getDay()]} ${fecha.getDate()}`;
-}
-
-function IconoClima({ condicion, hora }: { condicion: string; hora: number }) {
-  const texto = condicion.toLowerCase();
-
-  const esAmanecer = hora >= 5 && hora < 7;
-  const esNoche = hora >= 19 || hora < 5;
-
-  if (esAmanecer) {
-    return (
-      <MaterialCommunityIcons
-        name="weather-sunset-up"
-        size={120}
-        color="orange"
-      />
+  if(c.includes("rain")){
+    return(
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <Line x1="30" y1="20" x2="10" y2="80" stroke="black" strokeWidth="6"/>
+        <Line x1="50" y1="20" x2="30" y2="80" stroke="black" strokeWidth="6"/>
+        <Line x1="70" y1="20" x2="50" y2="80" stroke="black" strokeWidth="6"/>
+      </Svg>
     );
   }
 
-  if (esNoche) {
-    if (texto.includes("rain")) {
-      return (
-        <Fontisto
-          name="night-alt-rain"
-          size={120}
-          color="#3b82f6" // azul lluvia
-        />
-      );
-    }
-
-    if (texto.includes("cloud")) {
-      return (
-        <MaterialCommunityIcons
-          name="weather-night-partly-cloudy"
-          size={120}
-          color="gray"
-        />
-      );
-    }
-
-    return (
-      <MaterialCommunityIcons
-        name="weather-night"
-        size={120}
-        color="black"
-      />
+  if(c.includes("cloud")){
+    return(
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <Path d="M20 60 Q30 40 50 50 Q60 30 80 50 Q90 60 70 70 H30 Q10 70 20 60 Z"
+          stroke="black" strokeWidth="6" fill="none"/>
+      </Svg>
     );
   }
 
-  if (texto.includes("storm") || texto.includes("thunder")) {
-    return (
-      <View style={{ flexDirection: "row" }}>
-        <MaterialCommunityIcons name="weather-lightning" size={60} color="gray" />
-        <MaterialCommunityIcons name="weather-cloudy" size={60} color="gray" />
-      </View>
-    );
-  }
-
-  if (texto.includes("rain")) {
-    return (
-      <MaterialCommunityIcons
-        name="weather-pouring"
-        size={120}
-        color="#3b82f6" // azul
-      />
-    );
-  }
-
-  if (texto.includes("wind")) {
-    return (
-      <MaterialCommunityIcons
-        name="weather-windy"
-        size={120}
-        color="gray"
-      />
-    );
-  }
-
-  if (texto.includes("cloud")) {
-    return (
-      <MaterialCommunityIcons
-        name="weather-cloudy"
-        size={120}
-        color="gray"
-      />
-    );
-  }
-
-  if (texto.includes("sunny") || texto.includes("clear")) {
-    return (
-      <Fontisto
-        name="day-sunny"
-        size={120}
-        color="#facc15" // amarillo sol
-      />
-    );
-  }
-
-  return (
-    <MaterialCommunityIcons
-      name="weather-partly-cloudy"
-      size={120}
-      color="gray"
-    />
+  return(
+    <Svg width={size} height={size} viewBox="0 0 100 100">
+      <Circle cx="50" cy="50" r="30" stroke="black" strokeWidth="6" fill="none"/>
+    </Svg>
   );
 }
 
-export default function PantallaClima() {
-  const [datos, setDatos] = useState<any[]>([]);
-  const [indice, setIndice] = useState(1);
+export default function Index(){
+  const[i,setI]=useState(1);
+  const[datos,setDatos]=useState<any[]>([]);
+  const[presion,setPresion]=useState<number|null>(null);
 
-  const [tap, setTap] = useState(0);
-  const [admin, setAdmin] = useState(false);
-
-  const [horaTest, setHoraTest] = useState<number | null>(null);
-  const [horaSeleccionada, setHoraSeleccionada] = useState<number | null>(null);
-
-  const hora = horaTest ?? new Date().getHours();
-
-  useEffect(() => {
-    const hoy = new Date();
-    const ayer = new Date(hoy.getTime() - 86400000);
-    const fechaAyer = ayer.toISOString().split("T")[0];
-
-    Promise.all([
-      fetch(`https://api.weatherapi.com/v1/history.json?key=${API_KEY}&q=Buenos Aires&dt=${fechaAyer}`).then(r => r.json()),
-      fetch(`https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=Buenos Aires&days=2&aqi=no&alerts=no`).then(r => r.json())
-    ]).then(([hist, forecast]) => {
-      setDatos([
-        hist.forecast.forecastday[0],
-        forecast.forecast.forecastday[0],
-        forecast.forecast.forecastday[1],
-      ]);
+  useEffect(()=>{
+    fetch(`https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=Buenos Aires&days=3&aqi=no&alerts=no`)
+    .then(r=>r.json())
+    .then(d=>{
+      setDatos(d.forecast.forecastday);
+      setPresion(d.current.pressure_mb);
     });
-  }, []);
+  },[]);
 
-  const actual = datos[indice];
+  if(!datos.length){
+    return<View style={styles.container}><Text>Cargando...</Text></View>;
+  }
 
-  const activarAdmin = () => {
-    const nuevo = tap + 1;
-    setTap(nuevo);
-    if (nuevo >= 5) {
-      setAdmin(true);
-      setTap(0);
-    }
-  };
+  const a=datos[i];
 
-  return (
+  return(
     <View style={styles.container}>
-      {!actual ? (
-        <Text>Cargando...</Text>
-      ) : (
-        <>
-          <TouchableOpacity onPress={activarAdmin}>
-            <Text style={styles.ciudad}>BUENOS AIRES</Text>
-          </TouchableOpacity>
+      <Text style={styles.city}>BUENOS AIRES</Text>
+      <Text style={styles.tag}>{etiqueta(i)}</Text>
 
-          {admin && (
-            <View style={styles.adminBox}>
-              <Text style={{ fontWeight: "bold" }}>
-                Hola Admin, mira tu app funcionando
-              </Text>
+      <View style={styles.row}>
+        <TouchableOpacity onPress={()=>setI(Math.max(0,i-1))}>
+          <Text style={styles.side}>{i>0?fecha(i-1):""}</Text>
+        </TouchableOpacity>
 
-              <Text style={{ marginTop: 5, opacity: 0.6 }}>
-                Test de horas
-              </Text>
+        <Text style={styles.center}>{fecha(i)}</Text>
 
-              <View style={styles.horasBox}>
-                {[1, 5, 9, 13, 17, 21].map((h) => (
-                  <TouchableOpacity
-                    key={h}
-                    onPress={() => {
-                      setHoraTest(h);
-                      setHoraSeleccionada(h);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.botonHora,
-                        horaSeleccionada === h && styles.horaActiva,
-                      ]}
-                    >
-                      {h}:00
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+        <TouchableOpacity onPress={()=>setI(Math.min(datos.length-1,i+1))}>
+          <Text style={styles.side}>{i<datos.length-1?fecha(i+1):""}</Text>
+        </TouchableOpacity>
+      </View>
 
-              <TouchableOpacity
-                onPress={() => {
-                  setAdmin(false);
-                  setHoraTest(null);
-                  setHoraSeleccionada(null);
-                }}
-              >
-                <Text style={{ marginTop: 10, color: "red" }}>SALIR</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+      <Icono condicion={a.day.condition.text}/>
 
-          <View style={styles.carrusel}>
-            <TouchableOpacity onPress={() => setIndice(Math.max(0, indice - 1))} style={styles.lado}>
-              <Text style={styles.lateral}>
-                {indice > 0 ? formatearFechaCorta(indice - 1) : ""}
-              </Text>
-            </TouchableOpacity>
+      {/* 🔥 BLOQUE TEMPERATURA COMO TU IMAGEN */}
+      <View style={styles.tempBlock}>
+        <View style={styles.sideTemp}>
+          <Text style={styles.sideNumber}>{Math.round(a.day.mintemp_c)}°</Text>
+          <Text style={styles.sideLabel}>MIN</Text>
+        </View>
 
-            <View style={styles.centro}>
-              <Text style={styles.label}>{obtenerEtiqueta(indice)}</Text>
-              <Text style={styles.fecha}>{formatearFechaCompleta(indice)}</Text>
-            </View>
+        <Text style={styles.big}>{Math.round(a.day.avgtemp_c)}°</Text>
 
-            <TouchableOpacity onPress={() => setIndice(Math.min(datos.length - 1, indice + 1))} style={styles.lado}>
-              <Text style={styles.lateral}>
-                {indice < datos.length - 1 ? formatearFechaCorta(indice + 1) : ""}
-              </Text>
-            </TouchableOpacity>
-          </View>
+        <View style={styles.sideTemp}>
+          <Text style={styles.sideNumber}>{Math.round(a.day.maxtemp_c)}°</Text>
+          <Text style={styles.sideLabel}>MAX</Text>
+        </View>
+      </View>
 
-          <IconoClima condicion={actual.day.condition.text} hora={hora} />
+      {/* 🔥 NOW CON LÍNEAS */}
+      <View style={styles.nowRow}>
+        <View style={styles.line}/>
+        <Text style={styles.now}>NOW</Text>
+        <View style={styles.line}/>
+      </View>
 
-          <Text style={styles.temperatura}>{`${Math.round(actual.day.avgtemp_c)}°`}</Text>
+      {/* 🔥 MÉTRICAS */}
+      <View style={styles.metrics}>
+        <View style={styles.card}>
+          <MaterialCommunityIcons name="water-outline" size={16}/>
+          <Text>{a.day.avghumidity}%</Text>
+        </View>
 
-          <View style={styles.minmax}>
-            <Text>{`${Math.round(actual.day.mintemp_c)}°`}</Text>
-            <Text>{`${Math.round(actual.day.maxtemp_c)}°`}</Text>
-          </View>
+        <View style={styles.card}>
+          <MaterialCommunityIcons name="gauge" size={16}/>
+          <Text>{presion} hPa</Text>
+        </View>
 
-          <View style={styles.metricas}>
-            <Text>💧 {actual.day.avghumidity}%</Text>
-            <Text>🌬 {actual.day.maxwind_kph} km/h</Text>
-            <Text>☁ {actual.day.daily_chance_of_rain}%</Text>
-          </View>
-        </>
-      )}
+        <View style={styles.card}>
+          <MaterialCommunityIcons name="weather-windy" size={16}/>
+          <Text>{a.day.maxwind_kph} km/h</Text>
+        </View>
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#f5f5f5" },
-  ciudad: { fontSize: 26, fontWeight: "800", letterSpacing: 2 },
+const styles=StyleSheet.create({
+  container:{flex:1,alignItems:"center",justifyContent:"center",backgroundColor:"#fff",padding:20},
 
-  carrusel: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginVertical: 20 },
-  centro: { marginHorizontal: 15, alignItems: "center" },
-  lado: { width: 90, alignItems: "center" },
+  city:{fontSize:32,fontWeight:"700"},
+  tag:{fontSize:12,opacity:0.5},
 
-  label: { fontSize: 12, opacity: 0.6 },
-  fecha: { fontSize: 16, fontWeight: "bold", textAlign: "center" },
-  lateral: { fontSize: 10, opacity: 0.3, textAlign: "center" },
+  row:{flexDirection:"row",marginBottom:10,gap:15},
+  center:{fontSize:14},
+  side:{fontSize:10,opacity:0.3},
 
-  temperatura: { fontSize: 60, fontWeight: "bold" },
-  minmax: { flexDirection: "row", gap: 20 },
-  metricas: { marginTop: 20, gap: 5 },
-
-  adminBox: {
-    marginTop: 15,
-    padding: 10,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    alignItems: "center",
+  tempBlock:{
+    flexDirection:"row",
+    alignItems:"center",
+    justifyContent:"center",
+    gap:25,
+    marginTop:10
   },
 
-  horasBox: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginTop: 10,
-    justifyContent: "center",
+  sideTemp:{alignItems:"center"},
+  sideNumber:{fontSize:18,opacity:0.7},
+  sideLabel:{fontSize:10,opacity:0.5},
+
+  big:{fontSize:70},
+
+  nowRow:{
+    flexDirection:"row",
+    alignItems:"center",
+    gap:10,
+    marginTop:5
   },
 
-  botonHora: {
-    padding: 6,
-    backgroundColor: "#ddd",
-    borderRadius: 5,
-  },
+  now:{fontSize:12,opacity:0.5},
 
-  horaActiva: {
-    backgroundColor: "red",
-    color: "white",
-    fontWeight: "bold",
-  },
+  line:{width:50,height:1,backgroundColor:"#bbb"},
+
+  metrics:{flexDirection:"row",gap:10,marginTop:20},
+
+  card:{
+    flexDirection:"row",
+    alignItems:"center",
+    gap:5,
+    backgroundColor:"#eee",
+    padding:8,
+    borderRadius:20
+  }
 });
