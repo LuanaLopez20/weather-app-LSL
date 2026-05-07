@@ -88,7 +88,6 @@ export default function Index(){
 
       <Icono condicion={a.day.condition.text}/>
 
-      {/* 🔥 BLOQUE TEMPERATURA COMO TU IMAGEN */}
       <View style={styles.tempBlock}>
         <View style={styles.sideTemp}>
           <Text style={styles.sideNumber}>{Math.round(a.day.mintemp_c)}°</Text>
@@ -103,14 +102,12 @@ export default function Index(){
         </View>
       </View>
 
-      {/* 🔥 NOW CON LÍNEAS */}
       <View style={styles.nowRow}>
         <View style={styles.line}/>
         <Text style={styles.now}>NOW</Text>
         <View style={styles.line}/>
       </View>
 
-      {/* 🔥 MÉTRICAS */}
       <View style={styles.metrics}>
         <View style={styles.card}>
           <MaterialCommunityIcons name="water-outline" size={16}/>
