@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useState, useEffect } from "react";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Svg, { Circle, Line, Path } from "react-native-svg";
+import * as Location from "expo-location";
 
 const API_KEY = "6f062217425c4e79878200647262304";
 
@@ -50,28 +51,51 @@ function Icono({condicion}:{condicion:string}){
 }
 
 export default function Index(){
-  const[i,setI]=useState(1);
-  const[datos,setDatos]=useState<any[]>([]);
-  const[presion,setPresion]=useState<number|null>(null);
+  const [i,setI]=useState(1);
+  const [datos,setDatos]=useState<any[]>([]);
+  const [presion,setPresion]=useState<number|null>(null);
+  const [city,setCity]=useState("...");
+  const [loading,setLoading]=useState(true);
 
   useEffect(()=>{
-    fetch(`https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=Buenos Aires&days=3&aqi=no&alerts=no`)
-    .then(r=>r.json())
-    .then(d=>{
-      setDatos(d.forecast.forecastday);
-      setPresion(d.current.pressure_mb);
-    });
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        console.log("Sin permiso de ubicación");
+        return;
+      }
+
+      let loc = await Location.getCurrentPositionAsync({});
+      const lat = loc.coords.latitude;
+      const lon = loc.coords.longitude;
+
+      fetch(
+        `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${lat},${lon}&days=3&aqi=no&alerts=no`
+      )
+        .then(r=>r.json())
+        .then(d=>{
+          setDatos(d.forecast.forecastday);
+          setPresion(d.current.pressure_mb);
+          setCity(d.location.name);
+          setLoading(false);
+        });
+    })();
   },[]);
 
-  if(!datos.length){
-    return<View style={styles.container}><Text>Cargando...</Text></View>;
+  if(loading || !datos.length){
+    return(
+      <View style={styles.container}>
+        <Text>Cargando...</Text>
+      </View>
+    );
   }
 
   const a=datos[i];
 
   return(
     <View style={styles.container}>
-      <Text style={styles.city}>BUENOS AIRES</Text>
+      <Text style={styles.city}>{city.toUpperCase()}</Text>
       <Text style={styles.tag}>{etiqueta(i)}</Text>
 
       <View style={styles.row}>
